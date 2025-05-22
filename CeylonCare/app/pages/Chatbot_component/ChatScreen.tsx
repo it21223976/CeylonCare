@@ -1,291 +1,405 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, Alert, Platform, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 
 const ChatScreen = () => {
-  console.log('[DEBUG] ChatScreen component rendering');
   const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState<{ user: string; bot: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<{ id: string; user: string; bot: string }[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [languageCode, setLanguageCode] = useState('en-US');
-  const [audioPath, setAudioPath] = useState<string | null>(null);
-  const [fileSystemReady, setFileSystemReady] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [ttsInitialized, setTtsInitialized] = useState(false);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
+  const [userProfile, setUserProfile] = useState<{ age?: number; gender?: string; healthCondition?: string } | null>(null);
+  const flatListRef = useRef<FlatList>(null); // Reference to FlatList for scrolling
+
+  const isSinhalaText = (text: string): boolean => {
+    const sinhalaPattern = /[\u0D80-\u0DFF]/;
+    const result = sinhalaPattern.test(text);
+    console.log(`[DEBUG] isSinhalaText: text="${text}", result=${result}`);
+    return result;
+  };
 
   useEffect(() => {
-    console.log('[DEBUG] ChatScreen useEffect triggered');
-    const initializeFileSystem = async () => {
+    const initialize = async () => {
       try {
-        console.log('[DEBUG] Initializing expo-file-system');
-        const cacheDir = FileSystem.cacheDirectory;
-        console.log('[DEBUG] FileSystem.cacheDirectory:', cacheDir);
-        if (!cacheDir) {
-          throw new Error('FileSystem.cacheDirectory is null or undefined');
-        }
-
-        const dirInfo = await FileSystem.getInfoAsync(cacheDir);
-        console.log('[DEBUG] Cache directory info:', JSON.stringify(dirInfo, null, 2));
-        if (!dirInfo.exists) {
-          console.log('[DEBUG] Cache directory does not exist, creating it');
-          await FileSystem.makeDirectoryAsync(cacheDir, { intermediates: true });
-          console.log('[DEBUG] Cache directory created');
-        } else {
-          console.log('[DEBUG] Cache directory already exists');
-        }
-
-        setFileSystemReady(true);
-        console.log('[DEBUG] expo-file-system initialized successfully');
-      } catch (error) {
-        console.error('[ERROR] Failed to initialize expo-file-system:', error.message);
-        setFileSystemReady(false);
-        Alert.alert('File System Error', 'Unable to initialize file system. Voice recording may not work.');
-      }
-    };
-
-    const fetchUserId = async () => {
-      try {
-        console.log('[DEBUG] Fetching userId from AsyncStorage');
+        await Speech.getAvailableVoicesAsync();
+        setTtsInitialized(true);
         const storedUserId = await AsyncStorage.getItem('userId');
-        if (storedUserId) {
-          setUserId(storedUserId);
-          console.log(`[DEBUG] Fetched userId: ${storedUserId}`);
-        } else {
-          console.warn('[WARNING] No userId in AsyncStorage, using default');
-          setUserId('guQ7Z9OI59fBKqbyT5e8UdFoCc2');
-        }
+        setUserId(storedUserId || 'defaultUserId');
+        const profile = { age: 45, gender: 'Female', healthCondition: 'diabetes' };
+        setUserProfile(profile);
+        console.log('[DEBUG] Initialized with userId:', storedUserId, 'Profile:', profile);
       } catch (error) {
-        console.error('[ERROR] Failed to fetch userId:', error.message);
-        setUserId('guQ7Z9OI59fBKqbyT5e8UdFoCc2');
+        console.error('[ERROR] Initialization failed:', error);
+        Alert.alert('Error', `Failed to initialize app: ${error instanceof Error ? error.message : String(error)}`);
       }
     };
-
-    initializeFileSystem();
-    fetchUserId();
+    initialize();
 
     return () => {
-      console.log('[DEBUG] Cleaning up audio recording');
-      if (recording) {
-        console.log('[DEBUG] Recording exists, attempting to stop and unload');
-        recording.stopAndUnloadAsync().catch(err => {
-          console.warn('[WARNING] Failed to clean up recording:', err.message);
-        });
-      } else {
-        console.log('[DEBUG] No active recording to clean up');
-      }
-      console.log('[DEBUG] Audio recording cleanup completed');
+      if (recording) recording.stopAndUnloadAsync().catch(console.error);
+      if (ttsInitialized) Speech.stop().catch(console.error);
     };
   }, []);
 
   const startRecording = async () => {
-    if (!fileSystemReady) {
-      console.error('[ERROR] File system not initialized, cannot start recording');
-      Alert.alert('Error', 'File system not initialized. Cannot record audio.');
-      return;
-    }
-
     try {
-      console.log('[DEBUG] Requesting audio recording permissions');
-      const permission = await Audio.requestPermissionsAsync();
-      if (!permission.granted) {
-        throw new Error('Audio recording permissions not granted');
-      }
-      console.log('[DEBUG] Audio recording permissions granted');
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) throw new Error('Microphone permission denied');
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        interruptionModeIOS: 2,
+        interruptionModeAndroid: 2,
       });
-      console.log('[DEBUG] Audio mode set for recording');
+      console.log('[DEBUG] Audio mode set successfully');
 
       const newRecording = new Audio.Recording();
-      console.log('[DEBUG] Created new Audio.Recording instance');
-
-      // Use HIGH_QUALITY preset without specifying a URI
-      await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      console.log('[DEBUG] Recording prepared with default temporary URI');
-
+      const recordingOptions = {
+        android: {
+          extension: '.wav',
+          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_WAV,
+          audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_DEFAULT,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 16,
+        },
+        ios: {
+          extension: '.wav',
+          audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 16,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+      };
+      console.log('[DEBUG] Recording options:', JSON.stringify(recordingOptions));
+      await newRecording.prepareToRecordAsync(recordingOptions);
       await newRecording.startAsync();
-      console.log('[DEBUG] Recording started successfully');
       setRecording(newRecording);
+      setRecordingStartTime(Date.now());
       setIsRecording(true);
-
-      const status = await newRecording.getStatusAsync();
-      console.log('[DEBUG] Recording status after start:', JSON.stringify(status, null, 2));
+      console.log('[DEBUG] Recording started with languageCode:', languageCode);
     } catch (error) {
-      console.error('[ERROR] Failed to start recording:', error.message);
+      console.error('[ERROR] Failed to start recording:', error);
+      Alert.alert('Error', `Failed to start recording: ${error instanceof Error ? error.message : String(error)}`);
       setIsRecording(false);
-      Alert.alert('Error', 'Failed to start recording: ' + error.message);
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) {
-      console.warn('[WARNING] No active recording to stop');
+    if (!recording || !recordingStartTime) {
       setIsRecording(false);
       return;
     }
-
     try {
-      console.log('[DEBUG] Stopping recording');
-      const statusBeforeStop = await recording.getStatusAsync();
-      console.log('[DEBUG] Recording status before stop:', JSON.stringify(statusBeforeStop, null, 2));
-
+      const duration = (Date.now() - recordingStartTime) / 1000;
+      if (duration < 2) {
+        await recording.stopAndUnloadAsync();
+        setRecording(null);
+        setIsRecording(false);
+        setRecordingStartTime(null);
+        throw new Error('Recording too short. Please record at least 2 seconds.');
+      }
       await recording.stopAndUnloadAsync();
-      console.log('[DEBUG] Recording stopped and unloaded');
-
-      const finalStatus = await recording.getStatusAsync();
-      console.log('[DEBUG] Recording status after stop:', JSON.stringify(finalStatus, null, 2));
-
-      // Get the temporary URI from the recording
-      const tempUri = recording.getURI(); // Fallback to getURI() if finalStatus.uri is unavailable
-      console.log('[DEBUG] Temporary recording URI from getURI():', tempUri);
-
-      if (!tempUri) {
-        throw new Error('No temporary URI provided by expo-av after recording');
-      }
-
-      // Verify the temporary file exists
-      const tempFileInfo = await FileSystem.getInfoAsync(tempUri);
-      console.log('[DEBUG] Temporary file info:', JSON.stringify(tempFileInfo, null, 2));
-      if (!tempFileInfo.exists) {
-        throw new Error('Temporary audio file not found at: ' + tempUri);
-      }
-
-      // Define the target path
-      const targetPath = `${FileSystem.cacheDirectory}voice.wav`;
-      console.log('[DEBUG] Target path for audio file:', targetPath);
-
-      // Move the file from tempUri to targetPath
-      console.log(`[DEBUG] Moving file from ${tempUri} to ${targetPath}`);
-      await FileSystem.moveAsync({
-        from: tempUri,
-        to: targetPath,
-
-      });
-      console.log('[DEBUG] File moved successfully');
-
-      // Verify the file exists at the target path
-      const fileInfo = await FileSystem.getInfoAsync(targetPath);
-      console.log('[DEBUG] Target audio file info:', JSON.stringify(fileInfo, null, 2));
-      if (!fileInfo.exists) {
-        throw new Error('Audio file not found at target path after moving: ' + targetPath);
-      }
-
-      console.log('[DEBUG] Audio file size (bytes):', fileInfo.size);
-      setAudioPath(targetPath);
-      await sendMessage('', true); // Send voice message to backend
-    } catch (error) {
-      console.error('[ERROR] Failed to stop recording:', error.message);
-      Alert.alert('Error', 'Failed to stop recording: ' + error.message);
-    } finally {
-      setIsRecording(false);
+      const uri = recording.getURI();
+      if (!uri) throw new Error('No URI for recording');
       setRecording(null);
-      console.log('[DEBUG] Recording state reset');
+      setIsRecording(false);
+      setRecordingStartTime(null);
+      console.log('[DEBUG] Recording stopped, duration:', duration, 'seconds');
+      await sendMessage('', true, uri);
+    } catch (error) {
+      console.error('[ERROR] Failed to stop recording:', error);
+      Alert.alert('Error', `Failed to stop recording: ${error instanceof Error ? error.message : String(error)}`);
+      setIsRecording(false);
+      setRecordingStartTime(null);
     }
   };
 
-  const sendMessage = async (textMessage = message, isVoice = false) => {
-    if (!textMessage && !isVoice) {
-      console.log('[DEBUG] No message provided');
-      return;
+  const speakResponse = async (text: string, language: string) => {
+    if (!ttsInitialized) return;
+    try {
+      console.log('[DEBUG] Speaking response:', text, 'in language:', language);
+      await Speech.speak(text, {
+        language: language === 'si-LK' ? 'si' : 'en',
+        pitch: 1.0,
+        rate: 0.5,
+      });
+    } catch (error) {
+      console.error('[ERROR] TTS failed:', error);
     }
-    if (!userId) {
-      console.log('[DEBUG] No userId provided');
-      return;
+  };
+
+  const sendMessage = async (textMessage = message, isVoice = false, audioUri?: string) => {
+    if (!textMessage && !isVoice) return;
+    if (!userId || !userProfile) return Alert.alert('Error', 'User not identified or profile unavailable');
+
+    textMessage = textMessage.trim().toLowerCase();
+
+    let detectedLanguageCode = languageCode;
+    if (!isVoice) {
+      detectedLanguageCode = isSinhalaText(textMessage) ? 'si-LK' : 'en-US';
+      console.log('[DEBUG] Detected language code for text input:', detectedLanguageCode, 'for message:', textMessage);
+    } else {
+      console.log('[DEBUG] Using languageCode for voice input:', detectedLanguageCode);
     }
 
-    setChatHistory([...chatHistory, { user: isVoice ? 'Voice Input' : textMessage, bot: '' }]);
-    console.log(`[DEBUG] Sending ${isVoice ? 'voice' : 'text'} message for user ${userId}`);
+    if (detectedLanguageCode !== languageCode) {
+      console.log('[DEBUG] Updating languageCode from', languageCode, 'to', detectedLanguageCode);
+      setLanguageCode(detectedLanguageCode);
+    }
+
+    const messageId = Date.now().toString();
+    const newChatHistory = [...chatHistory, { id: messageId, user: isVoice ? 'Voice Input' : textMessage, bot: '...' }];
+    setChatHistory(newChatHistory);
+
+    // Scroll to the bottom after adding a new message
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
 
     try {
       let response;
-      if (isVoice && audioPath) {
-        console.log('[DEBUG] Preparing FormData for voice input');
+      if (isVoice && audioUri) {
         const formData = new FormData();
         formData.append('audio', {
-          uri: Platform.OS === 'android' ? `file://${audioPath}` : audioPath,
+          uri: audioUri,
           type: 'audio/wav',
           name: 'voice.wav',
-        });
-        formData.append('languageCode', languageCode);
-        console.log('[DEBUG] FormData prepared with audio URI:', audioPath);
-
-        console.log('[DEBUG] Sending voice input to backend');
-        response = await axios.post(`http://192.168.60.107:5000/healthChat/${userId}`, formData, {
+        } as any);
+        formData.append('languageCode', detectedLanguageCode);
+        formData.append('userId', userId);
+        formData.append('age', userProfile.age?.toString() || '');
+        formData.append('gender', userProfile.gender || '');
+        formData.append('healthCondition', userProfile.healthCondition || '');
+        console.log('[DEBUG] Sending voice request with languageCode:', detectedLanguageCode);
+        response = await axios.post('http://192.168.8.134:5003/transcribe', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 15000,
         });
-        console.log('[DEBUG] Voice response from backend:', JSON.stringify(response.data, null, 2));
-        textMessage = response.data.transcript || 'Voice input';
+        if (response.data.error) {
+          throw new Error(response.data.error);
+        }
+        textMessage = response.data.transcript ? response.data.transcript.trim().toLowerCase() : 'Voice input';
+        console.log('[DEBUG] Normalized transcribed text:', textMessage);
       } else {
-        console.log('[DEBUG] Sending text input to backend');
-        response = await axios.post(`http://192.168.60.107:5000/healthChat/${userId}`, {
+        console.log('[DEBUG] Sending text request with message:', textMessage, 'languageCode:', detectedLanguageCode);
+        response = await axios.post('http://192.168.8.134:5003/chat', {
           message: textMessage,
+          userId,
+          languageCode: detectedLanguageCode,
+          age: userProfile.age,
+          gender: userProfile.gender,
+          healthCondition: userProfile.healthCondition,
         }, {
           headers: { 'Content-Type': 'application/json' },
+          timeout: 5000,
         });
-        console.log('[DEBUG] Text response from backend:', JSON.stringify(response.data, null, 2));
       }
 
       const botResponse = response.data.response;
-      console.log('[DEBUG] Bot response received:', botResponse);
+      const recommendation = response.data.recommendation || '';
+      console.log('[DEBUG] Received response:', botResponse, 'Recommendation:', recommendation);
+      await speakResponse(botResponse + (recommendation ? ` Recommendation: ${recommendation}` : ''), detectedLanguageCode);
+      setChatHistory(prev =>
+        prev.map(item =>
+          item.id === messageId
+            ? { ...item, user: textMessage, bot: `${botResponse}${recommendation ? `\nRecommendation: ${recommendation}` : ''}` }
+            : item
+        )
+      );
 
-      setChatHistory(prev => [...prev.slice(0, -1), { user: textMessage, bot: botResponse }]);
-      console.log('[DEBUG] Chat history updated with bot response');
+      // Scroll to the bottom after updating the bot response
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
-      console.error('[ERROR] Chatbot request failed:', error.message);
-      if (error.response) {
-        console.error('[DEBUG] Error response from backend:', JSON.stringify(error.response.data, null, 2));
+      console.error('[ERROR] Request failed:', error);
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      if ('response' in (error as any)) {
+        console.error('[ERROR] Server response:', JSON.stringify((error as any).response.data, null, 2));
+        errorMessage = (error as any).response.data.error || errorMessage;
       }
-      Alert.alert('Error', 'Failed to connect to chatbot');
-      setChatHistory(prev => [...prev.slice(0, -1), { user: textMessage, bot: 'Error connecting to chatbot' }]);
-    }
+      Alert.alert(
+        'Error',
+        errorMessage === 'Could not understand the audio. Please speak clearly, reduce background noise, or try again.'
+          ? 'Could not understand your voice. Please speak slowly and clearly, reduce background noise, or try again.'
+          : `Failed to connect to chatbot: ${errorMessage}`
+      );
+      setChatHistory(prev =>
+        prev.map(item => (item.id === messageId ? { ...item, bot: 'Error occurred' } : item))
+      );
 
+      // Scroll to the bottom after error
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
     setMessage('');
-    setAudioPath(null);
-    console.log('[DEBUG] Message input cleared');
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
       <FlatList
+        ref={flatListRef}
         data={chatHistory}
         renderItem={({ item }) => (
-          <View>
-            <Text style={styles.userMessage}>You: {item.user}</Text>
-            <Text style={styles.botMessage}>Bot: {item.bot}</Text>
+          <View style={styles.messageContainer}>
+            <View style={styles.userMessageContainer}>
+              <Text style={styles.userMessage}>You: {item.user}</Text>
+            </View>
+            <View style={styles.botMessageContainer}>
+              <Text style={styles.botMessage}>Bot: {item.bot}</Text>
+            </View>
           </View>
         )}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={item => item.id}
+        style={styles.chatList}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
-      <TextInput
-        style={styles.input}
-        value={message}
-        onChangeText={setMessage}
-        placeholder="Type your message..."
-        onSubmitEditing={() => sendMessage()}
-      />
-      <Button title="Send" onPress={() => sendMessage()} disabled={!userId} />
-      <Button
-        title={isRecording ? 'Stop Recording' : 'Start Recording'}
-        onPress={isRecording ? stopRecording : startRecording}
-      />
-      <Button
-        title={`Switch to ${languageCode === 'en-US' ? 'Sinhala' : 'English'}`}
-        onPress={() => setLanguageCode(prev => prev === 'en-US' ? 'si-LK' : 'en-US')}
-      />
-    </View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={message}
+          onChangeText={text => {
+            setMessage(text);
+            const newLanguageCode = isSinhalaText(text) ? 'si-LK' : 'en-US';
+            if (newLanguageCode !== languageCode) {
+              console.log('[DEBUG] Text input language changed to:', newLanguageCode);
+              setLanguageCode(newLanguageCode);
+            }
+          }}
+          placeholder="Type your message..."
+          placeholderTextColor="#888"
+          onSubmitEditing={() => sendMessage()}
+          returnKeyType="send"
+        />
+        <TouchableOpacity style={styles.sendButton} onPress={() => sendMessage()} disabled={!userId || !message}>
+          <Text style={styles.sendButtonText}>Send</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.recordButton} onPress={isRecording ? stopRecording : startRecording}>
+          <Text style={styles.buttonText}>{isRecording ? 'Stop Recording' : 'Start Recording'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.languageButton}
+          onPress={() => setLanguageCode(prev => {
+            const newLang = prev === 'en-US' ? 'si-LK' : 'en-US';
+            console.log('[DEBUG] Manually switched language to:', newLang);
+            return newLang;
+          })}
+        >
+          <Text style={styles.buttonText}>Switch to {languageCode === 'en-US' ? 'Sinhala' : 'English'}</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  input: { borderWidth: 1, padding: 10, marginVertical: 10 },
-  userMessage: { fontWeight: 'bold', color: 'blue' },
-  botMessage: { color: 'green' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    padding: 10,
+  },
+  chatList: {
+    flex: 1,
+    paddingBottom: 10,
+  },
+  messageContainer: {
+    marginVertical: 5,
+  },
+  userMessageContainer: {
+    alignSelf: 'flex-end',
+    marginBottom: 5,
+  },
+  botMessageContainer: {
+    alignSelf: 'flex-start',
+  },
+  userMessage: {
+    fontWeight: '500',
+    color: '#007AFF',
+    padding: 12,
+    backgroundColor: '#E5F0FF',
+    borderRadius: 20,
+    maxWidth: '80%',
+  },
+  botMessage: {
+    color: '#333',
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    maxWidth: '80%',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#FFF',
+  },
+  sendButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginLeft: 10,
+  },
+  sendButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  recordButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flex: 1,
+    marginRight: 5,
+  },
+  languageButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flex: 1,
+    marginLeft: 5,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
 
 export default ChatScreen;
