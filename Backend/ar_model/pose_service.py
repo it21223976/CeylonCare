@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 mp_pose = mp.solutions.pose
 
-# Initialize MediaPipe Pose model with higher confidence thresholds
-pose = mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+# Initialize MediaPipe Pose model with adjusted confidence thresholds
+pose = mp_pose.Pose(min_detection_confidence=0.6, min_tracking_confidence=0.7)
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -42,6 +42,10 @@ def process_frame():
         # Log image details
         logger.debug('[DEBUG] Image decoded, shape: %s', image.shape)
 
+        # Preprocess image to enhance contrast and brightness
+        image = cv2.convertScaleAbs(image, alpha=1.2, beta=20)  # Increase contrast and brightness
+        logger.debug('[DEBUG] Image preprocessed with contrast alpha=1.2 and brightness beta=20')
+
         # Convert image to RGB for MediaPipe processing
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         results = pose.process(image_rgb)
@@ -49,10 +53,21 @@ def process_frame():
         # Process pose detection results
         if results.pose_landmarks:
             landmarks = [
-                {'name': f'landmark_{i}', 'x': lm.x, 'y': lm.y, 'z': lm.z}
+                {
+                    'name': f'landmark_{i}',
+                    'x': 1 - lm.x,  # Mirror x-coordinate to match front-facing camera
+                    'y': lm.y,
+                    'z': lm.z
+                }
                 for i, lm in enumerate(results.pose_landmarks.landmark)
             ]
             logger.info('[DEBUG] Pose landmarks detected: %d', len(landmarks))
+            
+            # Log specific landmarks to verify coordinates after mirroring
+            for lm in landmarks:
+                if lm['name'] in ['landmark_11', 'landmark_12']:  # left_shoulder, right_shoulder
+                    logger.debug('[DEBUG] Mirrored %s: x=%.3f, y=%.3f, z=%.3f', lm['name'], lm['x'], lm['y'], lm['z'])
+            
             return jsonify({'landmarks': landmarks})
         else:
             logger.warning('[WARN] No pose landmarks detected')
