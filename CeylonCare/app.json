@@ -15,7 +15,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "We need microphone access to record your voice for the chatbot.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSSpeechRecognitionUsageDescription": "Allow speech recognition for text-to-speech"
       },
       "bundleIdentifier": "com.amfdo.CeylonCare"
     },
