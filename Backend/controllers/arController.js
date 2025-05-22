@@ -153,8 +153,8 @@ const getTherapyPoseLandmarks = async (req, res) => {
     const therapyData = therapySnapshot.data();
     console.log("[DEBUG] Fetched therapy data:", JSON.stringify(therapyData, null, 2));
 
-    // Assuming landmarks are stored as an array of {name, x, y, z} objects
-    const landmarks = therapyData.landmarks || [];
+    // Use the correct field name from Firestore
+    const landmarks = therapyData.correct_pose_landmarks || [];
     if (!landmarks.length) {
       console.warn(`[WARN] No landmarks found for ${normalizedTherapyName}`);
     }

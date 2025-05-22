@@ -1,0 +1,53 @@
+{
+    "downward_dog": {
+        "name": "Downward Dog",
+        "description": "A foundational yoga pose that stretches the entire body, promoting relaxation and reducing stress.",
+        "ar_pose": "https://res.cloudinary.com/dmwaockgw/image/upload/v1741786736/Downward_Dog_jp5ixq.glb",
+        "reference_video": "https://res.cloudinary.com/dmwaockgw/video/upload/v1741786530/downward_dog_jxjkjz.mp4",
+        "steps": [
+            "Step 1: Start on your hands and knees, with wrists under shoulders and knees under hips.",
+            "Step 2: Lift your hips up and back, straightening your legs as much as comfortable.",
+            "Step 3: Spread your fingers wide and press evenly through your palms, forming an inverted 'V' shape."
+        ],
+        "benefits": [
+            "Relieves tension in the back and shoulders",
+            "Improves circulation, aiding blood pressure regulation",
+            "Calms the mind, reducing stress and anxiety"
+        ],
+        "target_time": 5
+    },
+    "triangle_pose": {
+        "name": "Triangle Pose",
+        "description": "A lateral stretch that opens the chest and enhances flexibility, fostering a sense of calm.",
+        "ar_pose": "https://res.cloudinary.com/dmwaockgw/image/upload/v1741787681/Triangle_Pose_sfoj9p.glb",
+        "reference_video": "https://res.cloudinary.com/dmwaockgw/video/upload/v1741799464/triangle_pose_sq7moo.mp4",
+        "steps": [
+            "Step 1: Stand with your feet about 3-4 feet apart, turning your right foot out 90 degrees and left foot slightly in.",
+            "Step 2: Extend your arms out to the sides at shoulder height.",
+            "Step 3: Reach your right hand down toward your right shin or the floor, lifting your left arm up, gazing toward your left hand."
+        ],
+        "benefits": [
+            "Stretches the sides of the body, reducing physical stress",
+            "Enhances breathing capacity, supporting blood pressure control",
+            "Promotes mental clarity and emotional balance"
+        ],
+        "target_time": 5
+    },
+    "warrior_ii": {
+        "name": "Warrior II",
+        "description": "A powerful standing pose that strengthens the legs and improves focus, helping to alleviate stress and enhance resilience.",
+        "ar_pose": "https://res.cloudinary.com/dmwaockgw/image/upload/v1741590782/warrior_II_lp2hfq.glb",
+        "reference_video": "https://res.cloudinary.com/dmwaockgw/video/upload/v1741550773/warrior_ii_iowwqf.mp4",
+        "steps": [
+            "Step 1: Stand with your feet wide apart, about 3-4 feet, depending on comfort.",
+            "Step 2: Turn your right foot out 90 degrees and your left foot slightly in, aligning your heels.",
+            "Step 3: Bend your right knee to a 90-degree angle, keeping it over your ankle, and extend your arms parallel to the ground, gazing over your right hand."
+        ],
+        "benefits": [
+            "Strengthens the legs and core, supporting physical stability",
+            "Improves circulation, aiding in blood pressure management",
+            "Enhances mental focus and reduces stress, beneficial for diabetes control"
+        ],
+        "target_time": 5
+    }
+}

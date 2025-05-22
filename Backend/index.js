@@ -8,6 +8,7 @@ const {
   updateUserProfile,
   logoutUser,
 } = require("./controllers/userController");
+const fileUpload = require("express-fileupload");
 const upload = require("./middleware/uploadMiddleware");
 const path = require("path");
 const {
