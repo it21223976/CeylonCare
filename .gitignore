@@ -3,6 +3,7 @@ Backend/node_modules/
 
 # Ignore node_modules globally in the project
 node_modules/
+.package-lock.json
 
 # Ignore other common files
 *.log
