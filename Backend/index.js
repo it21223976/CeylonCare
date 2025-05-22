@@ -15,7 +15,7 @@ const {
   updateHealthData,
   deleteHealthData,
 } = require("./controllers/healthController");
-const { getChatRecommendation } = require("./controllers/chatController");
+//const { getChatRecommendation } = require("./controllers/chatController");
 const { getARRecommendations, getTherapyDetails } = require("./controllers/arController");
 const fileUpload = require("express-fileupload");
 
@@ -43,7 +43,7 @@ app.get("/ar_therapy/:userId", getARRecommendations);
 app.get("/therapy_details/:therapyName", getTherapyDetails);
 
 // Chatbot Routes
-app.post('/healthChat/:userId', getChatRecommendation);
+//app.post('/healthChat/:userId', getChatRecommendation);
 
 const PORT = 5000;
 app.listen(PORT, () => {
