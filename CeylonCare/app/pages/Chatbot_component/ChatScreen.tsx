@@ -215,14 +215,14 @@ const ChatScreen = () => {
         console.log('[DEBUG] FormData prepared with audio URI:', audioPath);
 
         console.log('[DEBUG] Sending voice input to backend');
-        response = await axios.post(`http://192.168.60.107:5000/healthChat/${userId}`, formData, {
+        response = await axios.post(`http://192.168.8.134:5000/healthChat/${userId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         console.log('[DEBUG] Voice response from backend:', JSON.stringify(response.data, null, 2));
         textMessage = response.data.transcript || 'Voice input';
       } else {
         console.log('[DEBUG] Sending text input to backend');
-        response = await axios.post(`http://192.168.60.107:5000/healthChat/${userId}`, {
+        response = await axios.post(`http://192.168.8.134:5000/healthChat/${userId}`, {
           message: textMessage,
         }, {
           headers: { 'Content-Type': 'application/json' },

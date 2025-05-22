@@ -36,7 +36,7 @@ const HealthDetails = ({ navigation }: any) => {
       console.log("Fetching health data for user ID:", userId);
 
       const response = await fetch(
-        `http://192.168.60.107:5000/healthData/${userId}`
+        `http://192.168.8.134:5000/healthData/${userId}`
       );
 
       console.log("Fetch response status:", response.status);
@@ -83,7 +83,7 @@ const HealthDetails = ({ navigation }: any) => {
 
     try {
       const response = await fetch(
-        `http://192.168.60.107:5000/healthData/${userId}`,
+        `http://192.168.8.134:5000/healthData/${userId}`,
         {
           method: "PUT",
           headers: {
@@ -117,7 +117,7 @@ const HealthDetails = ({ navigation }: any) => {
 
   //   try {
   //     const response = await fetch(
-  //       `http://192.168.60.107:5000/healthData/${userId}`,
+  //       `http://192.168.8.134:5000/healthData/${userId}`,
   //       {
   //         method: "DELETE",
   //       }
