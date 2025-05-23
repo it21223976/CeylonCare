@@ -1,6 +1,6 @@
 class MLFoodRecommendationModel {
     constructor() {
-      this.apiBaseUrl = 'http://192.168.1.108:5000'; // Your Express server
+      this.apiBaseUrl = 'http://172.20.10.14:5000'; // Your Express server
       this.isConnected = false;
     }
   

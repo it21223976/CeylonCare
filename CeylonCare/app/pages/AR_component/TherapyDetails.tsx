@@ -73,7 +73,7 @@ const TherapyDetails: React.FC<TherapyDetailsScreenProps> = ({ route, navigation
       const normalizedTherapyName = therapyName.trim().replace(/%20/g, " ").replace(/-/g, " ");
       console.log(`[DEBUG] Normalized therapy name: ${normalizedTherapyName}`);
 
-      const requestUrl = `http://192.168.1.108:5000/therapy_details/${encodeURIComponent(normalizedTherapyName)}`;
+      const requestUrl = `http://172.20.10.14:5000/therapy_details/${encodeURIComponent(normalizedTherapyName)}`;
 
       console.log(`[DEBUG] Request URL: ${requestUrl}`);
 

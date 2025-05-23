@@ -62,7 +62,7 @@ const HealthDetails = ({ navigation }: any) => {
       console.log("Fetching health data for user ID:", userId);
 
       const response = await fetch(
-        `http://192.168.1.108:5000/healthData/${userId}`
+        `http://172.20.10.14:5000/healthData/${userId}`
       );
 
       console.log("Fetch response status:", response.status);
@@ -142,7 +142,7 @@ const HealthDetails = ({ navigation }: any) => {
       };
 
       const response = await fetch(
-        `http://192.168.1.108:5000/healthData/${userId}`,
+        `http://172.20.10.14:5000/healthData/${userId}`,
         {
           method: "PUT",
           headers: {

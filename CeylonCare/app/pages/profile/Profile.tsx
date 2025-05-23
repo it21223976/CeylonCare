@@ -69,7 +69,7 @@ const Profile = ({ navigation }: any) => {
       const userId = await AsyncStorage.getItem("userId");
       if (!userId) throw new Error("User ID not found");
 
-      const response = await fetch(`http://192.168.1.108:5000/user/${userId}`);
+      const response = await fetch(`http://172.20.10.14:5000/user/${userId}`);
 
       if (!response.ok) throw new Error(`Failed to fetch user profile: ${response.status}`);
 
@@ -88,7 +88,7 @@ const Profile = ({ navigation }: any) => {
     try {
       console.log("Attempting to log out...");
 
-      const response = await fetch("http://192.168.1.108:5000/logout", {
+      const response = await fetch("http://172.20.10.14:5000/logout", {
         method: "POST",
       });
 

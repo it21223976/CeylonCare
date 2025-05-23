@@ -264,7 +264,7 @@ const ARAvatarScreen: React.FC<{
     try {
       console.log('[DEBUG] Starting camera calibration');
       const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.1 });
-      const response = await axios.post('http://192.168.8.134:5000/process_frame', { frame: photo.base64 }, { timeout: 10000 });
+      const response = await axios.post('http://172.20.10.14:5000/process_frame', { frame: photo.base64 }, { timeout: 10000 });
       console.log('[DEBUG] Calibration frame response:', JSON.stringify(response.data, null, 2));
 
       if (response.data.landmarks && response.data.landmarks.length > 0) {
@@ -434,7 +434,7 @@ const ARAvatarScreen: React.FC<{
 
     try {
       console.log('[DEBUG] Processing buffered frame');
-      const response = await axios.post('http://192.168.8.134:5000/process_frame', { frame: frameBuffer }, { timeout: 10000 });
+      const response = await axios.post('http://172.20.10.14:5000/process_frame', { frame: frameBuffer }, { timeout: 10000 });
       console.log('[DEBUG] Frame processing response:', JSON.stringify(response.data, null, 2));
 
       if (response.data.landmarks && response.data.landmarks.length > 0) {

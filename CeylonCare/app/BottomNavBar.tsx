@@ -18,7 +18,7 @@ const BottomNavBar = ({ navigation }: any) => {
       {/* Meal Plan */}
       <TouchableOpacity
         style={styles.navButton}
-        onPress={() => navigation.navigate("Splash")}
+        onPress={() => navigation.navigate("HealthyFoodMain")}
       >
         <Image
           source={require("../assets/images/food_nav.png")}

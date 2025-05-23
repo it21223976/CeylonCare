@@ -67,7 +67,7 @@ const Register = ({ navigation }: any) => {
     try {
       console.log("Sending request to backend...");
 
-      const response = await fetch("http://192.168.1.108:5000/register", {
+      const response = await fetch("http://172.20.10.14:5000/register", {
 
         method: "POST",
         headers: {

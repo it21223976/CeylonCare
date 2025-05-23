@@ -115,7 +115,7 @@ const FoodScanner = ({ navigation }) => {
     setIsAnalyzing(true);
     try {
       // Replace with your actual backend URL
-      const response = await fetch('http://192.168.1.108:5000/analyze-food-image', {
+      const response = await fetch('http://172.20.10.14:5000/analyze-food-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
