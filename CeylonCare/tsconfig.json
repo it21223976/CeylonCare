@@ -3,14 +3,18 @@
   "compilerOptions": {
     "jsx": "react",
     "strict": true,
+    "allowJs": true,
+    "checkJs": false,
     "paths": {
       "@backend/*": [
-        "../Backend*"
+        "../Backend/*"
       ]
     }
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx"
   ]
 }

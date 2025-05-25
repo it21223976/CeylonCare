@@ -1,6 +1,6 @@
 class MLFoodRecommendationModel {
     constructor() {
-      this.apiBaseUrl = 'http://192.168.1.108:5000'; // Your Express server
+      this.apiBaseUrl = 'http://192.168.1.9:5000'; // Your Express server
       this.isConnected = false;
     }
   
@@ -21,11 +21,11 @@ class MLFoodRecommendationModel {
       }
     }
   
-    async recommend(userHealthData, limit = 5) {
+    async recommend(userHealthData, limit = 5, randomize = false) {
       if (!this.isConnected) {
         await this.initialize();
       }
-  
+
       try {
         const response = await fetch(`${this.apiBaseUrl}/recommendations`, {
           method: 'POST',
@@ -43,7 +43,8 @@ class MLFoodRecommendationModel {
               allergies: userHealthData.allergies,
               dietary_preferences: userHealthData.dietaryPreferences
             },
-            limit: limit
+            limit: limit,
+            randomize: randomize  // Add this line
           })
         });
   
@@ -73,26 +74,33 @@ class MLFoodRecommendationModel {
       }
     }
   
-    async generateMealPlan(userHealthData, days = 7) {
+    async generateMealPlan(userHealthData, days = 7, randomSeed = null) {
       try {
+        const requestBody = {
+          userProfile: {
+            age: userHealthData.age,
+            weight: userHealthData.weight,
+            height: userHealthData.height,
+            gender: userHealthData.gender,
+            medical_conditions: userHealthData.medicalConditions || [],
+            exercise_frequency: userHealthData.exerciseFrequency
+          },
+          days: days
+        };
+
+        // Add random seed if provided
+        if (randomSeed !== null) {
+          requestBody.randomSeed = randomSeed;
+        }
+
         const response = await fetch(`${this.apiBaseUrl}/meal-plan`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            userProfile: {
-              age: userHealthData.age,
-              weight: userHealthData.weight,
-              height: userHealthData.height,
-              gender: userHealthData.gender,
-              medical_conditions: userHealthData.medicalConditions || [],
-              exercise_frequency: userHealthData.exerciseFrequency
-            },
-            days: days
-          })
+          body: JSON.stringify(requestBody)
         });
-  
+
         const result = await response.json();
         
         if (result.success) {
@@ -148,13 +156,52 @@ class MLFoodRecommendationModel {
     getFallbackMealPlan(days) {
       const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       
+      const breakfastOptions = [
+        { name: 'Kola Kanda', calories: 102 },
+        { name: 'String Hoppers', calories: 180 },
+        { name: 'Kiribath', calories: 220 },
+        { name: 'Pittu', calories: 195 }
+      ];
+      
+      const lunchOptions = [
+        { name: 'Traditional Rice and Curry', calories: 450 },
+        { name: 'Vegetable Kottu', calories: 380 },
+        { name: 'Fish Curry with Rice', calories: 420 },
+        { name: 'Dhal Curry with Roti', calories: 350 }
+      ];
+      
+      const dinnerOptions = [
+        { name: 'Hoppers with Curry', calories: 280 },
+        { name: 'Vegetable Soup', calories: 120 },
+        { name: 'Grilled Fish with Salad', calories: 250 },
+        { name: 'Herbal Tea with Light Snack', calories: 80 }
+      ];
+      
       return Array.from({ length: days }, (_, i) => ({
         id: i + 1,
         day: daysOfWeek[i % 7],
         meals: [
-          { type: 'Breakfast', name: 'Kola Kanda', time: '7:30 AM', calories: 102 },
-          { type: 'Lunch', name: 'Traditional Curry', time: '12:30 PM', calories: 150 },
-          { type: 'Dinner', name: 'Herbal Tea', time: '7:00 PM', calories: 80 }
+          { 
+            type: 'Breakfast', 
+            name: breakfastOptions[i % breakfastOptions.length].name, 
+            time: '7:30 AM', 
+            calories: breakfastOptions[i % breakfastOptions.length].calories,
+            portion: '1 serving'
+          },
+          { 
+            type: 'Lunch', 
+            name: lunchOptions[i % lunchOptions.length].name, 
+            time: '12:30 PM', 
+            calories: lunchOptions[i % lunchOptions.length].calories,
+            portion: '1 serving'
+          },
+          { 
+            type: 'Dinner', 
+            name: dinnerOptions[i % dinnerOptions.length].name, 
+            time: '7:00 PM', 
+            calories: dinnerOptions[i % dinnerOptions.length].calories,
+            portion: '1 serving'
+          }
         ]
       }));
     }

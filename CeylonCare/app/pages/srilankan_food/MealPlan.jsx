@@ -37,10 +37,17 @@ const MealPlan = ({ navigation }) => {
             height: '170'
           };
 
-      // 2) await the async model call
-      const generatedPlan = await foodRecommendationModel.generateMealPlan(healthData, 7);
+      // 2) Generate a random seed for variety
+      const randomSeed = Math.floor(Math.random() * 10000);
+
+      // 3) await the async model call with random seed
+      const generatedPlan = await foodRecommendationModel.generateMealPlan(
+        healthData, 
+        7, 
+        randomSeed
+      );
       
-      // 3) update state
+      // 4) update state
       setMealPlan(generatedPlan);
 
       if (generatedPlan.length > 0) {
@@ -153,13 +160,6 @@ const MealPlan = ({ navigation }) => {
       </View>
       
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.customizeButton}
-          onPress={() => navigation.navigate('FoodRecommendations')}
-        >
-          <Text style={styles.customizeButtonText}>Customize</Text>
-        </TouchableOpacity>
-        
         <TouchableOpacity 
           style={styles.generateButton}
           onPress={generateMealPlan}
@@ -332,35 +332,20 @@ const styles = StyleSheet.create({
     fontFamily: 'League Spartan',
   },
   buttonContainer: {
-    position: 'absolute',
-    bottom: 90, // Above bottom nav
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-  },
-  customizeButton: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 14,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  customizeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555555',
-    fontFamily: 'League Spartan',
-  },
+     position: 'absolute',
+     bottom: 90,
+     left: 20,
+     right: 20,
+     flexDirection: 'row',
+   },
   generateButton: {
-    flex: 2,
-    marginLeft: 8,
+    flex: 1,
   },
   generateGradient: {
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-  },
+     borderRadius: 12,
+     padding: 14,
+     alignItems: 'center',
+   },
   generateButtonText: {
     fontSize: 14,
     fontWeight: '600',

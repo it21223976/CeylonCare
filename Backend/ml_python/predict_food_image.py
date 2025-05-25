@@ -1,16 +1,3 @@
-"""
-CeylonCare Food Image Classification Prediction Script
-======================================================
-
-This script handles food image classification using the trained TensorFlow model.
-It integrates with the Node.js backend through the ML controller.
-
-Usage:
-    python predict_food_image.py <temp_file_path> [food_hint]
-
-Author: CeylonCare Team
-"""
-
 import sys
 import json
 import os
@@ -21,23 +8,51 @@ import base64
 import io
 import logging
 from datetime import datetime
+import warnings
+
+# Suppress warnings for cleaner output
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+# Configure TensorFlow for Mac optimization
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TF warnings
+
+# Mac-specific optimizations
+if sys.platform == 'darwin':
+    # Configure TensorFlow for Apple Silicon
+    try:
+        # Enable memory growth for GPU if available
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+        
+        # Set number of threads for better performance
+        tf.config.threading.set_inter_op_parallelism_threads(2)
+        tf.config.threading.set_intra_op_parallelism_threads(4)
+    except:
+        pass
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Configuration
 MODEL_PATH = '../image_model/models/food_classifier_final.h5'
 LABELS_PATH = '../image_model/models/food_labels.json'
 IMG_SIZE = 224
+BATCH_SIZE = 1  # For single image prediction
 
 # Global variables
 model = None
 food_labels = None
 class_names = None
 
+# Cache for preprocessed images
+image_cache = {}
+
 def load_model_and_labels():
-    """Load the trained model and class labels"""
+    """Load the trained model and class labels with Mac optimizations"""
     global model, food_labels, class_names
     
     try:
@@ -46,10 +61,24 @@ def load_model_and_labels():
         model_path = os.path.join(script_dir, MODEL_PATH)
         labels_path = os.path.join(script_dir, LABELS_PATH)
         
-        # Load the trained model
+        # Load the trained model with Mac optimizations
         logger.info(f"Loading model from {model_path}")
-        model = tf.keras.models.load_model(model_path)
-        logger.info("✅ Model loaded successfully")
+        
+        # Custom object scope for legacy optimizer compatibility
+        with tf.keras.utils.custom_object_scope({'Adam': tf.keras.optimizers.legacy.Adam}):
+            model = tf.keras.models.load_model(model_path, compile=False)
+            
+            # Recompile with legacy optimizer for M1/M2 Macs
+            model.compile(
+                optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.001),
+                loss='categorical_crossentropy',
+                metrics=['accuracy']
+            )
+        
+        # Optimize model for inference
+        model.predict(np.zeros((1, IMG_SIZE, IMG_SIZE, 3)), verbose=0)  # Warm up
+        
+        logger.info("✅ Model loaded and optimized successfully")
         
         # Load class labels
         logger.info(f"Loading labels from {labels_path}")
@@ -67,17 +96,24 @@ def load_model_and_labels():
         return False
 
 def read_image_from_file(file_path):
-    """Read base64 image data from temp file"""
+    """Read base64 image data from temp file with caching"""
     try:
+        # Check cache first
+        if file_path in image_cache:
+            return image_cache[file_path]
+        
         with open(file_path, 'r') as f:
             base64_data = f.read().strip()
+        
+        # Cache the result
+        image_cache[file_path] = base64_data
         return base64_data
     except Exception as e:
         logger.error(f"Error reading temp file: {e}")
         raise
 
 def preprocess_image(image_data):
-    """Preprocess image for model prediction"""
+    """Preprocess image for model prediction with Mac optimizations"""
     try:
         # Decode base64 image
         if isinstance(image_data, str):
@@ -91,19 +127,24 @@ def preprocess_image(image_data):
         else:
             image = image_data
         
-        # Convert to RGB if needed
+        # Convert to RGB if needed (using PIL's optimized conversion)
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        # Resize to model input size
-        image = image.resize((IMG_SIZE, IMG_SIZE))
+        # Use PIL's LANCZOS resampling for better quality
+        image = image.resize((IMG_SIZE, IMG_SIZE), Image.Resampling.LANCZOS)
         
-        # Convert to numpy array and normalize
-        img_array = np.array(image).astype(np.float32)
-        img_array = img_array / 255.0  # Normalize to [0,1]
+        # Convert to numpy array with proper dtype
+        img_array = np.array(image, dtype=np.float32)
+        
+        # Normalize using vectorized operation
+        img_array *= (1.0/255.0)
         
         # Add batch dimension
         img_array = np.expand_dims(img_array, axis=0)
+        
+        # Ensure contiguous memory layout for better performance
+        img_array = np.ascontiguousarray(img_array)
         
         return img_array
         
@@ -198,7 +239,10 @@ def get_nutritional_info(food_name):
     return nutrition_db.get(food_name.lower().replace(' ', '_'), default_nutrition)
 
 def get_health_benefits(food_name):
-    """Get health benefits for the identified food"""
+    """Get health benefits for the identified food (using cached lookups)"""
+    # Use a more efficient lookup structure
+    food_key = food_name.lower().replace(' ', '_')
+    
     benefits_db = {
         'rice_and_curry': [
             'Rich in carbohydrates for sustained energy',
@@ -269,11 +313,14 @@ def get_health_benefits(food_name):
         'Culturally significant and wholesome food'
     ]
     
-    return benefits_db.get(food_name.lower().replace(' ', '_'), default_benefits)
+    return benefits_db.get(food_key, default_benefits)
 
 def calculate_health_score(food_name, nutritional_info):
     """Calculate a health score based on the food and its nutrition"""
-    # Base scores for different Sri Lankan foods
+    # Use a more efficient lookup
+    food_key = food_name.lower().replace(' ', '_')
+    
+    # Base scores dictionary
     base_scores = {
         'dhal_curry': 85,
         'vegetable_curry': 90,
@@ -287,7 +334,7 @@ def calculate_health_score(food_name, nutritional_info):
         'kottu': 55
     }
     
-    base_score = base_scores.get(food_name.lower().replace(' ', '_'), 70)
+    base_score = base_scores.get(food_key, 70)
     
     # Adjust based on nutritional content
     try:
@@ -336,8 +383,13 @@ def get_suggestions(food_name, health_score):
             "Consider smaller portions and add nutritious sides."
         ]
 
+@tf.function
+def predict_batch(model, images):
+    """TensorFlow function for optimized prediction"""
+    return model(images, training=False)
+
 def predict_food_image(image_data, food_hint=""):
-    """Main function to predict food from image"""
+    """Main function to predict food from image with Mac optimizations"""
     try:
         # Load model if not already loaded
         if model is None:
@@ -347,16 +399,21 @@ def predict_food_image(image_data, food_hint=""):
         # Preprocess the image
         processed_image = preprocess_image(image_data)
         
-        # Make prediction
-        predictions = model.predict(processed_image, verbose=0)
+        # Make prediction using optimized function
+        with tf.device('/cpu:0'):  # Force CPU usage for consistency
+            predictions = predict_batch(model, processed_image)
+            predictions = predictions.numpy()
+        
         predicted_class_idx = np.argmax(predictions[0])
         confidence = float(predictions[0][predicted_class_idx])
         
         # Get the predicted food name
         predicted_food = class_names[predicted_class_idx]
         
-        # Get top 3 predictions for additional context
-        top_3_indices = np.argsort(predictions[0])[-3:][::-1]
+        # Get top 3 predictions using efficient numpy operations
+        top_3_indices = np.argpartition(predictions[0], -3)[-3:]
+        top_3_indices = top_3_indices[np.argsort(predictions[0][top_3_indices])][::-1]
+        
         top_3_predictions = [
             {
                 'food': class_names[idx],
@@ -401,6 +458,12 @@ def predict_food_image(image_data, food_hint=""):
             'error': str(e)
         }
 
+def cleanup_cache():
+    """Clean up image cache to prevent memory issues"""
+    global image_cache
+    if len(image_cache) > 100:  # Limit cache size
+        image_cache.clear()
+
 def main():
     """Main function for command line usage"""
     try:
@@ -415,6 +478,9 @@ def main():
         
         # Make prediction
         result = predict_food_image(image_data, food_hint)
+        
+        # Clean up cache periodically
+        cleanup_cache()
         
         # Output result as JSON
         print(json.dumps(result))
