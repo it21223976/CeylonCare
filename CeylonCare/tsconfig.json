@@ -1,10 +1,10 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "allowJs":true,
+    "checkJs": false,
     "jsx": "react",
     "strict": true,
-    "allowJs": true,
-    "checkJs": false,
     "paths": {
       "@backend/*": [
         "../Backend/*"
@@ -12,9 +12,6 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx"
+    "src/**/*"
   ]
 }

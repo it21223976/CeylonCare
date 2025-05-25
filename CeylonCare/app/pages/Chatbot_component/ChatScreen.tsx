@@ -182,7 +182,7 @@ const ChatScreen = () => {
         formData.append('gender', userProfile.gender || '');
         formData.append('healthCondition', userProfile.healthCondition || '');
         console.log('[DEBUG] Sending voice request with languageCode:', detectedLanguageCode);
-        response = await axios.post('http://192.168.8.134:5003/transcribe', formData, {
+        response = await axios.post('http://172.20.10.14:5003/transcribe', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           timeout: 15000,
         });
@@ -193,7 +193,7 @@ const ChatScreen = () => {
         console.log('[DEBUG] Normalized transcribed text:', textMessage);
       } else {
         console.log('[DEBUG] Sending text request with message:', textMessage, 'languageCode:', detectedLanguageCode);
-        response = await axios.post('http://192.168.8.134:5003/chat', {
+        response = await axios.post('http://172.20.10.14:5003/chat', {
           message: textMessage,
           userId,
           languageCode: detectedLanguageCode,

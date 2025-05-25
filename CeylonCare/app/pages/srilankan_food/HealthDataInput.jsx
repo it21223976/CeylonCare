@@ -65,7 +65,7 @@ const HealthDataInput = ({ navigation }) => {
       // Then fetch from backend
       const userId = await AsyncStorage.getItem('userId');
       if (userId) {
-        const response = await fetch(`http://192.168.1.9:5000/healthData/${userId}`);
+        const response = await fetch(`http://172.20.10.14:5000/healthData/${userId}`);
         if (response.ok) {
           const backendData = await response.json();
           if (Object.keys(backendData).length > 0) {
@@ -148,7 +148,7 @@ const HealthDataInput = ({ navigation }) => {
       // Save to backend
       const userId = await AsyncStorage.getItem('userId');
       if (userId) {
-        const response = await fetch(`http://192.168.1.9:5000/healthData/${userId}`, {
+        const response = await fetch(`http://172.20.10.14:5000/healthData/${userId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
