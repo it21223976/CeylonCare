@@ -97,7 +97,7 @@ const FoodRecommendations = ({ navigation }) => {
       'boiled_purple_yam': require('../../../assets/images/srilankan_food/Boiled Purple Yam.jpg'),
       'boiled_red_kawpi_cowpea': require('../../../assets/images/srilankan_food/Boiled Red Kawpi (Cowpea).jpeg'),
       'bovitiya_tea': require('../../../assets/images/srilankan_food/Bovitiya Tea.png'),
-      'brown_rice': require('../../../assets/images/srilankan_food/Brown rice.jpg'),
+      'brown_rice': require('../../../assets/images/srilankan_food/Brown Rice.jpg'),
       'cabbage_curry': require('../../../assets/images/srilankan_food/Cabbage Curry.jpg'),
       'chick_peas': require('../../../assets/images/srilankan_food/Chick peas.jpg'),
       'curry_leaves_salad': require('../../../assets/images/srilankan_food/Curry Leaves Salad.jpg'),
