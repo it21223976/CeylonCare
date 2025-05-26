@@ -1,9 +1,9 @@
 {
-  "total_rows": 67,
+  "total_rows": 53,
   "categories": {
-    "both": 23,
-    "high_blood_pressure": 22,
-    "diabetes": 22
+    "both": 25,
+    "high_blood_pressure": 15,
+    "diabetes": 13
   },
   "features": [
     "protein",
@@ -16,5 +16,67 @@
     "calories",
     "cooking_time",
     "glycemic_index"
-  ]
+  ],
+  "foods_by_category": {
+    "high_blood_pressure": [
+      "Gotu Kola sambol",
+      "Murunga Leaves Mallum",
+      "Bovitiya Tea",
+      "polpala tea",
+      "Ranawara Tea",
+      "Iramusu Tea",
+      "Nilkatarolu Juice",
+      "Garlic and Tomato Soup",
+      "Fenugreek Drink",
+      "Pumpkin Curry",
+      "Del (Breadfruit) Curry",
+      "Squashed Eggplant Curry",
+      "Eggplant Curry",
+      "Karapincha Soup",
+      "Tomato Curry"
+    ],
+    "diabetes": [
+      "Boiled Red Kawpi",
+      "Mung Bean Curry",
+      "Boiled Purple Yam",
+      "Boild manioc",
+      "Papaya Curry",
+      "Thebu-Kola-Sambol",
+      "Aguna Kola Mallum",
+      "Ambra-Juice",
+      "Nelli",
+      "Kohila",
+      "starfruit-salad",
+      "Karawila Curry",
+      "Brown rice"
+    ],
+    "both": [
+      "Gotu Kola sambol",
+      "Ash Banana (Alu Kesel) Curry",
+      "Belimal Tea",
+      "Cabbage Curry",
+      "Chick peas",
+      "Eggplant and Tomato Stir Fry",
+      "Gotu Kola Herbal Tea",
+      "Halmasso Fish Curry )Sri Lankan Sprats Curry",
+      "Kathurumurunga Mallum",
+      "Kesel Muwa Curry",
+      "Kohila",
+      "Kola Kanda",
+      "Kurakkan Bread",
+      "Kurakkan Kanda",
+      "Kurakkan Pittu",
+      "Kurakkan Roti",
+      "Lime & Ginger Tea",
+      "Lunu Kanda",
+      "Mugunuwanna Mallum",
+      "Mung Bean Curry",
+      "Roasted Chickpeas",
+      "Thampala",
+      "Tomato Curry",
+      "Turmeric Tea",
+      "white_kawpi"
+    ]
+  },
+  "training_date": "2025-05-26T00:52:19.346327"
 }

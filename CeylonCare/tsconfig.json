@@ -7,11 +7,11 @@
     "strict": true,
     "paths": {
       "@backend/*": [
-        "../Backend*"
+        "../Backend/*"
       ]
     }
   },
   "include": [
-    "src/**/*"
+     "**/*"
   ]
 }

@@ -57,6 +57,8 @@ app.post('/recommendations', mlController.getFoodRecommendations.bind(mlControll
 app.get('/similar-foods/:foodId', mlController.getSimilarFoods.bind(mlController));
 app.post('/meal-plan', mlController.generateMealPlan.bind(mlController));
 app.post('/analyze-food-image', mlController.analyzeFoodImage.bind(mlController));
+app.post('/analysis-score', mlController.getAnalysisScore.bind(mlController));
+
 
 // AR Therapy Routes
 app.get("/ar_therapy/:userId", getARRecommendations);

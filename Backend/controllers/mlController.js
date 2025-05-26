@@ -1,16 +1,57 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs').promises;  // Make sure you're using .promises
-const os = require('os');  // Add this line
-const { v4: uuidv4 } = require('uuid');  // Add this line
+const fs = require('fs').promises;
+const fsSync = require('fs');
+const os = require('os');
+const { v4: uuidv4 } = require('uuid');
 
 class MLController {
   constructor() {
-    this.pythonPath = 'python'; // or 'python3' depending on your system
+    // Auto-detect Python command for Mac
+    this.pythonPath = this.detectPythonPath();
     this.mlScriptPath = path.join(__dirname, '../ml_python');
     this.setupScript = path.join(this.mlScriptPath, 'train_ml.py');
     this.predictScript = path.join(this.mlScriptPath, 'predict.py');
     this.foodImageScript = path.join(this.mlScriptPath, 'predict_food_image.py');
+    
+    // Mac-specific environment variables
+    this.pythonEnv = {
+      ...process.env,
+      PYTHONUNBUFFERED: '1',  // Disable Python output buffering
+      TF_CPP_MIN_LOG_LEVEL: '2',  // Suppress TensorFlow warnings
+      OMP_NUM_THREADS: '4',  // Optimize for Mac processors
+    };
+    
+    console.log(`[INFO] Python path detected: ${this.pythonPath}`);
+  }
+
+  // Auto-detect Python path on Mac
+  detectPythonPath() {
+    const possiblePaths = [
+      'python3',
+      'python',
+      '/usr/bin/python3',
+      '/usr/local/bin/python3',
+      '/opt/homebrew/bin/python3',  // M1/M2 Macs with Homebrew
+      '/Library/Frameworks/Python.framework/Versions/3.11/bin/python3',  // Your specific path
+    ];
+
+    for (const pythonPath of possiblePaths) {
+      try {
+        const result = require('child_process').execSync(`${pythonPath} --version`, { 
+          stdio: 'pipe',
+          encoding: 'utf-8'
+        });
+        if (result.includes('Python')) {
+          return pythonPath;
+        }
+      } catch (e) {
+        // Continue to next path
+      }
+    }
+    
+    console.warn('[WARNING] Could not auto-detect Python path, using "python3"');
+    return 'python3';
   }
 
   // Initialize and train ML models
@@ -30,7 +71,7 @@ class MLController {
       const categorizationPath = path.join(this.mlScriptPath, 'documents', categorizationFile);
       const recipesPath = path.join(this.mlScriptPath, 'documents', recipesFile);
 
-      if (!fs.existsSync(categorizationPath) || !fs.existsSync(recipesPath)) {
+      if (!fsSync.existsSync(categorizationPath) || !fsSync.existsSync(recipesPath)) {
         return res.status(400).json({
           error: 'Required DOCX files not found in ml_python/documents/ folder'
         });
@@ -78,12 +119,12 @@ class MLController {
         });
       }
 
-      // Run Python prediction script
+      // Run Python prediction script with timeout
       const result = await this.runPythonScript(this.predictScript, [
         'recommend',
         JSON.stringify(userProfile),
         limit.toString()
-      ]);
+      ], 30000); // 30 second timeout
 
       if (result.success) {
         res.status(200).json({
@@ -212,14 +253,14 @@ class MLController {
       tempFilePath = path.join(tempDir, tempFileName);
       
       // Write base64 data to temp file
-      fs.writeFile(tempFilePath, base64Image);
+      await fs.writeFile(tempFilePath, base64Image);
       console.log('[DEBUG] Wrote image data to temp file:', tempFilePath);
 
       // Run the food image prediction script with temp file path
       const result = await this.runPythonScript(this.foodImageScript, [
         tempFilePath,
         foodHint
-      ]);
+      ], 30000); // 30 second timeout for image processing
 
       // Clean up temp file
       try {
@@ -248,7 +289,7 @@ class MLController {
       // Clean up temp file in case of error
       if (tempFilePath) {
         try {
-          fs.unlink(tempFilePath);
+          await fs.unlink(tempFilePath);
         } catch (cleanupError) {
           console.error('[WARNING] Failed to clean up temp file:', cleanupError);
         }
@@ -269,8 +310,8 @@ class MLController {
       // Check for food classification model
       const imageModelPath = path.join(__dirname, '../image_model/models/food_classifier_final.h5');
       const imageLabelsPath = path.join(__dirname, '../image_model/models/food_labels.json');
-      const imageModelExists = fs.existsSync(imageModelPath);
-      const imageLabelsExist = fs.existsSync(imageLabelsPath);
+      const imageModelExists = fsSync.existsSync(imageModelPath);
+      const imageLabelsExist = fsSync.existsSync(imageLabelsPath);
 
       // Get recommendation model info
       const result = await this.runPythonScript(this.predictScript, ['model_info']);
@@ -298,44 +339,104 @@ class MLController {
     }
   }
 
-  // Helper method to run Python scripts
-  runPythonScript(scriptPath, args = []) {
+  // Helper method to run Python scripts with Mac optimizations
+  runPythonScript(scriptPath, args = [], timeout = 60000) {
     return new Promise((resolve, reject) => {
-      console.log(`[DEBUG] Running Python script: ${scriptPath} with args:`, args);
+      console.log(`[DEBUG] Running Python script: ${scriptPath}`);
+      console.log(`[DEBUG] With args:`, args);
+      console.log(`[DEBUG] Using Python path: ${this.pythonPath}`);
       
+      // Spawn Python process with Mac-specific options
       const python = spawn(this.pythonPath, [scriptPath, ...args], {
-        cwd: this.mlScriptPath
+        cwd: this.mlScriptPath,
+        env: this.pythonEnv,
+        stdio: ['pipe', 'pipe', 'pipe'],  // Explicit stdio configuration
+        shell: false,  // Don't use shell on Mac
+        detached: false
       });
 
       let stdout = '';
       let stderr = '';
+      let timeoutId;
+      let processKilled = false;
 
+      // Set timeout
+      if (timeout > 0) {
+        timeoutId = setTimeout(() => {
+          processKilled = true;
+          python.kill('SIGTERM');
+          console.error(`[ERROR] Python script timed out after ${timeout}ms`);
+          resolve({
+            success: false,
+            error: `Script execution timed out after ${timeout}ms`
+          });
+        }, timeout);
+      }
+
+      // Handle stdout with proper encoding
+      python.stdout.setEncoding('utf8');
       python.stdout.on('data', (data) => {
-        stdout += data.toString();
+        const chunk = data.toString();
+        stdout += chunk;
+        
+        // Log chunks for debugging
+        if (chunk.trim()) {
+          console.log('[DEBUG] Python output chunk:', chunk.substring(0, 100) + '...');
+        }
       });
 
+      // Handle stderr with proper encoding
+      python.stderr.setEncoding('utf8');
       python.stderr.on('data', (data) => {
-        stderr += data.toString();
+        const chunk = data.toString();
+        stderr += chunk;
+        
+        // Log non-warning stderr output
+        if (chunk.trim() && !chunk.includes('WARNING')) {
+          console.error('[DEBUG] Python stderr:', chunk);
+        }
       });
 
+      // Handle process close
       python.on('close', (code) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        if (processKilled) {
+          return; // Already handled by timeout
+        }
+
+        console.log(`[DEBUG] Python process exited with code: ${code}`);
+        
         if (code === 0) {
           try {
-            const result = JSON.parse(stdout.trim());
+            // Clean up stdout
+            const cleanStdout = stdout.trim();
+            
+            // Find JSON output (handle multiple JSON objects or extra output)
+            let jsonMatch = cleanStdout.match(/\{[\s\S]*\}(?!.*\{)/);
+            if (!jsonMatch) {
+              throw new Error('No valid JSON found in output');
+            }
+            
+            const jsonStr = jsonMatch[0];
+            const result = JSON.parse(jsonStr);
+            
+            console.log('[DEBUG] Successfully parsed Python output');
             resolve({
               success: true,
               data: result
             });
           } catch (parseError) {
-            console.error('[ERROR] Failed to parse Python output:', stdout);
+            console.error('[ERROR] Failed to parse Python output:', parseError.message);
+            console.error('[ERROR] Raw stdout:', stdout);
             resolve({
               success: false,
-              error: 'Invalid response from ML script'
+              error: `Invalid response from ML script: ${parseError.message}`
             });
           }
         } else {
-          console.error('[ERROR] Python script failed with code:', code);
-          console.error('[ERROR] Error output:', stderr);
+          console.error(`[ERROR] Python script failed with code: ${code}`);
+          console.error('[ERROR] Stderr:', stderr);
           resolve({
             success: false,
             error: stderr || `Python script exited with code ${code}`
@@ -343,9 +444,17 @@ class MLController {
         }
       });
 
+      // Handle process error
       python.on('error', (error) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        
         console.error('[ERROR] Failed to start Python script:', error);
-        reject(error);
+        
+        if (error.code === 'ENOENT') {
+          reject(new Error(`Python not found at ${this.pythonPath}. Please ensure Python is installed.`));
+        } else {
+          reject(error);
+        }
       });
     });
   }
@@ -357,23 +466,38 @@ class MLController {
       const dataDir = path.join(this.mlScriptPath, 'ml_data');
       const imageModelDir = path.join(__dirname, '../image_model/models');
 
+      // Check Python availability
+      let pythonAvailable = false;
+      let pythonVersion = 'Not detected';
+      try {
+        const result = require('child_process').execSync(`${this.pythonPath} --version`, {
+          encoding: 'utf-8'
+        });
+        pythonAvailable = true;
+        pythonVersion = result.trim();
+      } catch (e) {
+        console.error('[ERROR] Python check failed:', e.message);
+      }
+
       // Check recommendation models
-      const contentModelExists = fs.existsSync(path.join(modelsDir, 'content_based_model.h5'));
-      const clusteringModelExists = fs.existsSync(path.join(modelsDir, 'kmeans.pkl'));
-      const healthClfExists = fs.existsSync(path.join(modelsDir, 'rf_health.pkl'));
+      const contentModelExists = fsSync.existsSync(path.join(modelsDir, 'content_based_model.h5'));
+      const clusteringModelExists = fsSync.existsSync(path.join(modelsDir, 'kmeans.pkl'));
+      const healthClfExists = fsSync.existsSync(path.join(modelsDir, 'rf_health.pkl'));
 
       // Check food classification model
-      const foodModelExists = fs.existsSync(path.join(imageModelDir, 'food_classifier_final.h5'));
-      const foodLabelsExist = fs.existsSync(path.join(imageModelDir, 'food_labels.json'));
+      const foodModelExists = fsSync.existsSync(path.join(imageModelDir, 'food_classifier_final.h5'));
+      const foodLabelsExist = fsSync.existsSync(path.join(imageModelDir, 'food_labels.json'));
 
       res.status(200).json({
         success: true,
         status: 'healthy',
         ml_system: {
-          directories_exist: fs.existsSync(modelsDir) && fs.existsSync(dataDir),
+          python_path: this.pythonPath,
+          python_version: pythonVersion,
+          python_available: pythonAvailable,
+          directories_exist: fsSync.existsSync(modelsDir) && fsSync.existsSync(dataDir),
           recommendation_models_trained: contentModelExists && clusteringModelExists && healthClfExists,
           food_classification_model_trained: foodModelExists && foodLabelsExist,
-          python_available: true,
           models: {
             content_based: contentModelExists,
             clustering: clusteringModelExists,
@@ -390,6 +514,37 @@ class MLController {
       });
     }
   }
+
+  // Compute average health-score for user profile
+  async getAnalysisScore(req, res) {
+    try {
+      const { userProfile, limit = 5 } = req.body;
+      if (!userProfile) {
+        return res.status(400).json({ error: 'User profile is required' });
+      }
+
+      const result = await this.runPythonScript(this.predictScript, [
+        'analysis_score',
+        JSON.stringify(userProfile),
+        limit.toString()
+      ]);
+
+      if (result.success) {
+        return res.status(200).json({
+          success: true,
+          analysis_score: result.data.analysis_score
+        });
+      } else {
+        return res.status(500).json({ success: false, error: result.error });
+      }
+    } catch (error) {
+      console.error('[ERROR] Analysis score error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch analysis score' });
+    }
+  }
+
 }
+
+
 
 module.exports = new MLController();

@@ -16,13 +16,7 @@ import BottomNavBar from '../../BottomNavBar';
 
 const mockHealthConditions = [
   'Diabetes', 
-  'High Blood Pressure', 
-  'Heart Disease', 
-  'Cholesterol', 
-  'Digestive Issues',
-  'Weight Management',
-  'Anemia',
-  'Arthritis'
+  'High Blood Pressure'
 ];
 
 const exerciseFrequencies = [
@@ -487,18 +481,20 @@ const styles = StyleSheet.create({
   conditionBadge: {
     backgroundColor: '#F5F5F5',
     borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    margin: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    margin: 6,
     borderWidth: 1,
     borderColor: '#EEEEEE',
+    minWidth: 140,
+    alignItems: 'center',
   },
   conditionBadgeSelected: {
     backgroundColor: '#00BBD3',
     borderColor: '#00BBD3',
   },
   conditionText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#555555',
     fontFamily: 'League Spartan',
   },

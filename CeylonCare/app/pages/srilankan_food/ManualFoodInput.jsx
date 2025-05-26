@@ -2,31 +2,65 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-// Mock data for Sri Lankan foods
 const sriLankanFoods = [
-  'Rice and Curry',
-  'Kottu Roti',
-  'Hoppers (Appa)',
-  'String Hoppers (Idiyappam)',
-  'Pittu',
-  'Lamprais',
+  'Boiled Red Kawpi (Cowpea)',
+  'Mung Bean Curry',
+  'Boiled Purple Yam',
+  'Boiled Manioc',
+  'Papaya Curry',
+  'Thebu-Kola-Sambol',
+  'Aguna Kola Mallum',
+  'Ambra-Juice',
+  'Nelli',
+  'Kohila',
+  'Starfruit Salad',
+  'Karawila Curry',
+  'Brown Rice',
+  'Gotu Kola Sambol',
+  'Murunga Leaves Mallum (Drumstick Leaves Stir-Fry)',
+  'Bovitiya Tea',
+  'Polpala Tea',
+  'Ranawara Tea',
+  'Iramusu Tea',
+  'Nilkatarolu Juice',
+  'Garlic and Tomato Soup',
+  'Fenugreek Drink',
+  'Pumpkin Curry',
+  'Del (Breadfruit) Curry',
+  'Squashed Eggplant Curry',
+  'Eggplant Curry',
+  'Karapincha Soup',
+  'Tomato Curry',
+  'Ash Banana (Alu Kesel) Curry',
+  'Belimal Tea',
+  'Cabbage Curry',
+  'Chick Peas',
+  'Eggplant and Tomato Stir Fry',
+  'Gotu Kola Herbal Tea',
+  'Halmasso Fish Curry (Sri Lankan Sprats Curry)',
+  'Kathurumurunga Mallum (Sesbania Grandiflora Leaf Mallum)',
+  'Kesel Muwa Curry (Banana Flower Curry)',
   'Kola Kanda',
-  'Kiribath',
-  'Gotukola Sambol',
-  'Polos Curry (Young Jackfruit Curry)',
-  'Ambulthiyal (Sour Fish Curry)',
-  'Wambatu Moju (Eggplant Pickle)',
-  'Parippu (Dhal Curry)',
-  'Seeni Sambol (Caramelized Onion Relish)',
-  'Pol Sambol (Coconut Relish)',
+  'Kurakkan Bread',
+  'Kurakkan Kanda',
+  'Kurakkan Pittu',
+  'Kurakkan Roti',
+  'Lime & Ginger Tea',
+  'Lunu Kanda',
+  'Mugunuwanna Mallum',
+  'Roasted Chickpeas',
+  'Thampala',
+  'Turmeric Tea (Golden Milk)',
+  'White Kawpi'
 ];
-
 const ManualFoodInput = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFoods, setSelectedFoods] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
   
+  const API_BASE = 'http://192.168.1.9:5000';
+
   // Filter foods based on search query
   const filteredFoods = sriLankanFoods.filter(food => 
     food.toLowerCase().includes(searchQuery.toLowerCase())
@@ -42,20 +76,29 @@ const ManualFoodInput = () => {
   };
   
   // Analyze selected foods
-  const analyzeSelectedFoods = () => {
-    // This would normally call your ML model
-    // For now, we'll use mock data
-    
+  const analyzeSelectedFoods = async () => {
     if (selectedFoods.length === 0) {
       alert('Please select at least one food item');
       return;
     }
-    
-    setTimeout(() => {
+
+    // Clear out any previous analysis immediately
+    setAnalysisResult(null);
+
+    try {
+      const userProfile = { medical_conditions: ['Diabetes'], foods: selectedFoods };
+      const resp = await fetch(`${API_BASE}/analysis-score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userProfile, limit: selectedFoods.length })
+      });
+      const json = await resp.json();
+      if (!json.success) throw new Error(json.error || 'Analysis failed');
+
       setAnalysisResult({
-        healthScore: 75,
+        healthScore: Math.round(json.analysis_score),
         nutritionalAnalysis: 'The selected combination provides a good balance of carbohydrates and proteins, but may be high in saturated fats.',
-        healthImpact: 'This meal combination is moderately healthy for your condition (Diabetes). The high fiber content is beneficial, but the carbohydrate content may need to be monitored.',
+        healthImpact: `This meal combination is ${json.analysis_score > 75 ? 'very' : json.analysis_score > 50 ? 'moderately' : 'somewhat'} healthy for your condition.`,
         suggestions: [
           'Consider reducing the portion size of rice to manage blood sugar levels',
           'Add more vegetables to increase the fiber content',
@@ -66,8 +109,12 @@ const ManualFoodInput = () => {
           { original: 'Hoppers (Appa)', alternative: 'Kurakkan Pittu' }
         ]
       });
-    }, 1000);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch analysis score. Please try again.');
+    }
   };
+
   
   // Render food item
   const renderFoodItem = ({ item }) => (
@@ -185,17 +232,14 @@ const ManualFoodInput = () => {
                 ))}
               </View>
               
-              <TouchableOpacity 
-                style={styles.addToPlanButton}
-                onPress={() => navigation.navigate('MealPlan')}
-              >
-                <Text style={styles.addToPlanButtonText}>Add to Meal Plan</Text>
-              </TouchableOpacity>
-              
               {/* Clear Analysis Button */}
               <TouchableOpacity 
                 style={styles.clearButton}
-                onPress={() => setAnalysisResult(null)}
+                onPress={() => {
+                  setAnalysisResult(null);
+                  setSelectedFoods([]);
+                }}
+
               >
                 <Text style={styles.clearButtonText}>Clear Analysis</Text>
               </TouchableOpacity>

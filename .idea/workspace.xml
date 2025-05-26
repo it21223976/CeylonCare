@@ -4,38 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="16c48381-06f5-414e-9bff-2d01f6d21542" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/all_therapy_data.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/detected_images/downward_dog_detected.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/detected_images/triangle_pose_detected.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/detected_images/warrior_ii_detected.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/extract_pose.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/pose_images/downward_dog.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/pose_images/triangle_pose.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/pose_images/warrior_ii.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/ar_model/arPoseLandmarks/therapy_config.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CeylonCare/assets/ar_poses/all_therapy_data.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/downward_dog/downward_dog_landmarks.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/downward_dog/downward_dog_pose.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/extract_pose.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/triangle_pose/triangle_pose.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/triangle_pose/triangle_pose_landmarks.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/warrior_ii/warrior_ii.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/arPoseLandmarks/warrior_ii/warrior_ii_landmarks.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/ar_model/pose_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/ar_model/pose_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/chatbot_model/chatbot.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/chatbot_model/chatbot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/controllers/arController.js" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/controllers/arController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/controllers/chatController.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CeylonCare/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/CeylonCare/app.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CeylonCare/app/pages/AR_component/ARAvatarScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/CeylonCare/app/pages/AR_component/ARAvatarScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CeylonCare/app/pages/Chatbot_component/ChatScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/CeylonCare/app/pages/Chatbot_component/ChatScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CeylonCare/assets/ar_poses/fbx/DamagedHelmet.glb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CeylonCare/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/CeylonCare/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CeylonCare/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/CeylonCare/package.json" afterDir="false" />
-    </list>
+    <list default="true" id="16c48381-06f5-414e-9bff-2d01f6d21542" name="Changes" comment="conflicts fixed" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -94,8 +63,17 @@
       <option name="presentableId" value="Default" />
       <updated>1747891762822</updated>
       <workItem from="1747891763848" duration="1167000" />
-      <workItem from="1747939268366" duration="595000" />
+      <workItem from="1747939268366" duration="1287000" />
     </task>
+    <task id="LOCAL-00001" summary="conflicts fixed">
+      <option name="closed" value="true" />
+      <created>1747939929777</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1747939929777</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -111,5 +89,9 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="conflicts fixed" />
+    <option name="LAST_COMMIT_MESSAGE" value="conflicts fixed" />
   </component>
 </project>
